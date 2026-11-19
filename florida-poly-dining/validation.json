@@ -1,0 +1,56 @@
+{
+  "source": "Florida Poly Dining Menu Database(1).pdf",
+  "source_sha256": "f9faf307469ba84d4226ec660ca3b64687fac19b707ab7167c1a91cec9bc29c0",
+  "listings": 521,
+  "restaurant_counts": {
+    "1": 413,
+    "2": 63,
+    "4": 45
+  },
+  "category_counts": {
+    "1/Breakfast": 67,
+    "1/Comfort": 56,
+    "1/Farm Fresh": 17,
+    "1/Delicious Without": 42,
+    "1/Stack": 37,
+    "1/Blaze": 23,
+    "1/Crafted": 15,
+    "1/Trattoria": 14,
+    "1/Kettles": 10,
+    "1/Indulge": 27,
+    "1/Nourish": 26,
+    "1/Glitched-meal items": 79,
+    "2/Gourmet Bagels": 2,
+    "2/Classic Egg Sandwiches": 5,
+    "2/Signature Sandwiches": 12,
+    "2/Deli Sliced Meats": 2,
+    "2/Grab and Go": 2,
+    "2/Salads": 2,
+    "2/Dressings": 1,
+    "2/Sweets": 4,
+    "2/Bread": 2,
+    "2/Spreads": 5,
+    "2/Classic Bagels": 6,
+    "2/Hot Sandwiches": 9,
+    "2/Signature Egg Sandwiches": 6,
+    "2/Signature Bagels": 3,
+    "2/Eggs": 2,
+    "4/Mosaic Cafe": 45
+  },
+  "rag_chunks": 527,
+  "embeddings": 0,
+  "validation": "PDF table counts and category counts verified; MariaDB runtime not available in build environment.",
+  "checks_passed": [
+    "521 source row round trip: all names, portions, calorie variants, tags, descriptions, and source pages preserved",
+    "Repeated seed import: counts unchanged after two passes",
+    "All item prices NULL; three source anomaly flags preserved",
+    "Restaurant and RAG chunk references valid",
+    "YAML parses; pinned image, persistent bind mount, internal network, secrets, limits, healthcheck present",
+    "All Bash files pass bash -n; Python script parses"
+  ],
+  "runtime_tests_not_run": [
+    "MariaDB CREATE TABLE/VECTOR and import",
+    "docker compose config/startup",
+    "local Ollama embeddings and vector search"
+  ]
+}

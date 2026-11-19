@@ -1,0 +1,52 @@
+# Database-only portion of the campus dining RAG project.
+# Run: bash scripts/setup.sh && docker compose up -d --wait
+services:
+  mariadb:
+    # Pinned patch release with native VECTOR support; no external DB extension.
+    image: mariadb:11.8.9
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: flpoly_dining
+      MARIADB_USER: dining_app
+      MARIADB_PASSWORD_FILE: /run/secrets/dining_db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/dining_root_password
+      MARIADB_ROOT_HOST: localhost
+    secrets:
+      - dining_db_password
+      - dining_root_password
+    volumes:
+      # Default is a local bind mount; on GCP set DINING_DB_PATH=/data/db
+      # after your team has mounted the project's LVM volume there.
+      - type: bind
+        source: ${DINING_DB_PATH:-./data/db}
+        target: /var/lib/mysql
+        bind:
+          create_host_path: false
+      # Official entrypoint imports *.sql only when the data directory is empty.
+      - ./init:/docker-entrypoint-initdb.d:ro
+    # Deliberately no 'ports': database is not published on the host/internet.
+    networks:
+      - dining_internal
+    cpus: 1.0
+    mem_limit: 1g
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+networks:
+  dining_internal:
+    internal: true
+
+secrets:
+  dining_db_password:
+    file: ./secrets/db_password.txt
+  dining_root_password:
+    file: ./secrets/root_password.txt
