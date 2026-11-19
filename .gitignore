@@ -1,0 +1,16 @@
+# Secrets and state: never commit these
+secrets/
+.env
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+*-key.json
+*credentials*.json
+*.pem
+*.key
+
+# Local data
+data/db/
