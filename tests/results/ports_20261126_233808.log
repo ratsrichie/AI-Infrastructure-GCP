@@ -1,0 +1,6 @@
+Port check against 35.255.229.228 at 2026-11-26T23:38:08+00:00
+FAIL  port 80 is closed (expected open)
+PASS  port 3306 is closed (expected closed)
+PASS  port 5432 is closed (expected closed)
+PASS  port 11434 is closed (expected closed)
+PASS  port 22 is closed (expected closed)
