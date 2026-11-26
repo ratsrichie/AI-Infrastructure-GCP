@@ -76,7 +76,10 @@ if [ ! -d "$APP_DIR/.git" ]; then
 else
   git -C "$APP_DIR" pull --ff-only || echo "pull failed, continuing with existing code"
 fi
-cd "$APP_DIR"
+# The compose file lives in a subfolder of the repo; fall back to the repo root if it moves.
+COMPOSE_DIR="$APP_DIR/florida-poly-dining"
+[ -f "$COMPOSE_DIR/compose.yml" ] || COMPOSE_DIR="$APP_DIR"
+cd "$COMPOSE_DIR"
 
 # ---------- 4. Secrets from Secret Manager (never stored in git) ----------
 TOKEN="$(meta instance/service-accounts/default/token | jq -r .access_token)"
