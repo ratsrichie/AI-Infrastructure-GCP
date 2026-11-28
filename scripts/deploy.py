@@ -10,6 +10,8 @@ Subcommands:
     secrets          service account, random passwords in Secret Manager
     vm <repo_url>    static IP, data disk, VM (its startup script does the rest)
     stop / start     stop or start the VM to save GCP credits
+    resize           change the VM type, e.g.  resize --machine e2-standard-4
+    destroy          delete everything this script created (asks to confirm)
     status           show the VM and its IP
 
 Every step checks whether the resource already exists, so re-running is safe.
@@ -39,7 +41,9 @@ class Deployer:
         if not self.project:
             sys.exit("error: no project set. Use --project ID or: gcloud config set project ID")
         self.region, self.zone = args.region, args.zone
-        self.machine = args.machine
+        self.machine = args.machine or "e2-small"
+        self.machine_arg = args.machine
+        self.assume_yes = args.yes
         self.disk_gb, self.db_lv_size = args.data_disk_gb, args.db_lv_size
 
         name = "rag"
@@ -202,6 +206,63 @@ class Deployer:
         self.info(f"Starting {self.vm}; the startup script re-checks everything on boot")
         self.run("compute", "instances", "start", self.vm, f"--zone={self.zone}")
 
+    def resize(self):
+        if not self.machine_arg:
+            sys.exit("error: say which type, e.g.  resize --machine e2-standard-4")
+        self.info(f"Resizing {self.vm} to {self.machine} (the VM restarts, so it is briefly offline)")
+        self.run("compute", "instances", "stop", self.vm, f"--zone={self.zone}")
+        self.run("compute", "instances", "set-machine-type", self.vm, f"--zone={self.zone}",
+                 f"--machine-type={self.machine}")
+        self.run("compute", "instances", "start", self.vm, f"--zone={self.zone}")
+        self.info("Done. Stop the VM again when you finish testing to save credits.")
+
+    def _delete(self, label, describe_cmd, delete_cmd):
+        """Delete one resource if it exists."""
+        if self.dry or self.exists(*describe_cmd):
+            self.info(f"Deleting {label}")
+            self.run(*delete_cmd, "--quiet")
+        else:
+            self.info(f"{label} not found, skipping")
+
+    def destroy(self):
+        print("This deletes the VM, its data disk (the database and models!), the static IP,")
+        print(f"the firewall rules, the secrets, the service account and the VPC in {self.project}.")
+        if not self.dry and not self.assume_yes:
+            answer = input(f"Type the project ID ({self.project}) to confirm: ").strip()
+            if answer != self.project:
+                sys.exit("Cancelled, nothing deleted.")
+
+        z, r = f"--zone={self.zone}", f"--region={self.region}"
+        # Order matters: the VM must go before its disk, and the network goes last.
+        self._delete(f"VM {self.vm}", ("compute", "instances", "describe", self.vm, z),
+                     ("compute", "instances", "delete", self.vm, z))
+        self._delete(f"data disk {self.disk}", ("compute", "disks", "describe", self.disk, z),
+                     ("compute", "disks", "delete", self.disk, z))
+        self._delete(f"static IP {self.addr}",
+                     ("compute", "addresses", "describe", self.addr, r),
+                     ("compute", "addresses", "delete", self.addr, r))
+        for rule in ("allow-web", "allow-iap-ssh", "deny-db-inference"):
+            name = f"{self.name}-{rule}"
+            self._delete(f"firewall rule {name}",
+                         ("compute", "firewall-rules", "describe", name),
+                         ("compute", "firewall-rules", "delete", name))
+        for secret in SECRET_NAMES:
+            self._delete(f"secret {secret}", ("secrets", "describe", secret),
+                         ("secrets", "delete", secret))
+        if self.exists("iam", "service-accounts", "describe", self.sa_email) or self.dry:
+            for role in ("roles/logging.logWriter", "roles/monitoring.metricWriter"):
+                self.run("projects", "remove-iam-policy-binding", self.project,
+                         f"--member=serviceAccount:{self.sa_email}", f"--role={role}", "--quiet")
+        self._delete(f"service account {self.sa_name}",
+                     ("iam", "service-accounts", "describe", self.sa_email),
+                     ("iam", "service-accounts", "delete", self.sa_email))
+        self._delete(f"subnet {self.subnet}",
+                     ("compute", "networks", "subnets", "describe", self.subnet, r),
+                     ("compute", "networks", "subnets", "delete", self.subnet, r))
+        self._delete(f"VPC {self.vpc}", ("compute", "networks", "describe", self.vpc),
+                     ("compute", "networks", "delete", self.vpc))
+        self.info("Everything removed. Rebuild with: python3 scripts/deploy.py all <repo_url>")
+
     def status(self):
         self.run("compute", "instances", "list", f"--filter=name={self.vm}",
                  "--format=table(name,zone.basename(),machineType.basename(),status,"
@@ -211,14 +272,15 @@ class Deployer:
 def main():
     p = argparse.ArgumentParser(description="Build the RAG project's GCP infrastructure.")
     p.add_argument("command", choices=["all", "network", "firewall", "secrets", "vm",
-                                       "stop", "start", "status"])
+                                       "stop", "start", "resize", "destroy", "status"])
     p.add_argument("repo_url", nargs="?", help="public HTTPS URL of the team repo (all, vm)")
     p.add_argument("--project", help="GCP project ID (default: gcloud's current project)")
     p.add_argument("--region", default="us-central1")
     p.add_argument("--zone", default="us-central1-a")
-    p.add_argument("--machine", default="e2-small", help="VM type (default e2-small to save credits)")
+    p.add_argument("--machine", help="VM type (default e2-small to save credits); required for resize")
     p.add_argument("--data-disk-gb", type=int, default=30)
     p.add_argument("--db-lv-size", default="5G", help="size of the database logical volume")
+    p.add_argument("--yes", action="store_true", help="destroy without asking for confirmation")
     p.add_argument("--dry-run", action="store_true", help="print gcloud commands, change nothing")
     args = p.parse_args()
 
