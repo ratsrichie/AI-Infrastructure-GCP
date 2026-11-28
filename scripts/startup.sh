@@ -70,6 +70,9 @@ mountpoint -q /models  || mount /models
 mkdir -p /data/db/mariadb
 chown 999:999 /data/db/mariadb   # uid of the mysql user inside the mariadb image
 
+# Folder for the Ollama model weights (compose.ai.yml bind-mounts it and will not create it).
+mkdir -p /models/ollama
+
 # ---------- 3. Application code ----------
 if [ ! -d "$APP_DIR/.git" ]; then
   git clone "$REPO_URL" "$APP_DIR"
@@ -96,5 +99,8 @@ umask 022
 
 # ---------- 5. Start containers (a no-op if they are already running) ----------
 export DINING_DB_PATH=/data/db/mariadb
-docker compose up -d --wait
+COMPOSE_FILES=(-f compose.yml)
+# The AI services live in their own file; include it when present.
+[ -f compose.ai.yml ] && COMPOSE_FILES+=(-f compose.ai.yml)
+docker compose "${COMPOSE_FILES[@]}" up -d --wait
 echo "=== startup finished $(date -Is) ==="
