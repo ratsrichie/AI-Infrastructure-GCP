@@ -13,3 +13,7 @@ services:
         target: /root/.ollama
         bind:
           create_host_path: false
+
+  ollama-2:
+    extends:
+      service: ollama-1
