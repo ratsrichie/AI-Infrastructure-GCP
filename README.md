@@ -135,21 +135,21 @@ tier exists. Logs are saved in `tests/results/`.
 - [ ] Screenshots for the report: Secret Manager, firewall rules, budget alert, post-reboot `lvs`/`df`/`docker ps` and startup log
 - [ ] Set a GCP budget alert (required by the spec)
 - [ ] Re-run `tests/check_ports.sh` once the load balancer is up (port 80 should then pass)
-- [ ] AI failover test (stop one inference container during requests; needs the inference containers)
+- [ In Progress D] AI failover test (stop one inference container during requests; needs the inference containers)
 - [ ] Verify the data survives a container re-create and a VM reboot with real data loaded
 
 ### To do: application side (needs owners to confirm)
 
 - [ ] Web front end: 3 containers minimum, scaling up to 6
-- [ ] Self-hosted LLM inference on CPU, 2 replicas, with readiness health checks
-- [ ] Embeddings generated locally; ingestion script that loads, chunks, embeds and stores documents (at least 25 chunks, no duplicates when re-run)
-- [ ] RAG feature: question, retrieve from the database, answer with the sources shown
+- [ In Progress D] Self-hosted LLM inference on CPU, 2 replicas, with readiness health checks
+- [ In Progress D  ] Embeddings generated locally; ingestion script that loads, chunks, embeds and stores documents (at least 25 chunks, no duplicates when re-run)
+- [ In Progress A,C and D] RAG feature: question, retrieve from the database, answer with the sources shown
 - [ ] Load balancer (for example Nginx) for web and inference, with long timeouts, no buffering for streaming, and rate limiting that returns HTTP 429
 - [ ] Graceful message when all inference replicas are down
-- [ ] Model weights placed on the `/models` volume
-- [ ] Container CPU and memory limits sized from measurements; document the memory sizing and an out-of-memory demonstration
-- [ ] Observability: request rate, errors, latency, time to first token, tokens per second, LVM usage, and at least one alert
-- [ ] Test suite (smoke, front-end load, AI load at 1/5/10 users, failover, rate limit) with logs committed
+- [ In Progress D] Model weights placed on the `/models` volume
+- [ In Progress D] Container CPU and memory limits sized from measurements; document the memory sizing and an out-of-memory demonstration
+- [ In Progress D ] Observability: request rate, errors, latency, time to first token, tokens per second, LVM usage, and at least one alert
+- [ In Progress D ] Test suite (smoke, front-end load, AI load at 1/5/10 users, failover, rate limit) with logs committed
 
 ### To do: deliverables
 
